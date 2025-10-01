@@ -2,16 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 import Element from './Element';
 import periodicTableData from './periodicTable.json';
+import ElectronModel from './ElectronModel';
 
 function App() {
   const [elements, setElements] = useState([]);
   const [selectedElement, setSelectedElement] = useState(null);
-  const [isModalClosing, setIsModalClosing] = useState(false);
-  const [hoveredElement, setHoveredElement] = useState(null);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [focusedElement, setFocusedElement] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const searchInputRef = useRef(null);
+  const mainContainerRef = useRef(null);
 
   const filteredElements = elements.filter(element =>
     element.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -19,41 +17,27 @@ function App() {
   );
 
   useEffect(() => {
-    setElements(periodicTableData.elements);
+    if (periodicTableData && Array.isArray(periodicTableData.elements)) {
+      setElements(periodicTableData.elements);
+    } else {
+      console.error("Error: periodicTableData.elements is not an array or is missing.", periodicTableData);
+      setElements([]);
+    }
   }, []);
 
   useEffect(() => {
     if (filteredElements.length > 0) {
-      // Chỉ cập nhật focusedElement nếu nó chưa được đặt hoặc không còn trong filteredElements
-      if (!focusedElement || !filteredElements.some(el => el.number === focusedElement.number)) {
-        setFocusedElement(filteredElements[0]);
+      // Chỉ cập nhật selectedElement nếu nó chưa được đặt hoặc không còn trong filteredElements
+      if (!selectedElement || !filteredElements.some(el => el.number === selectedElement.number)) {
         setSelectedElement(filteredElements[0]);
       }
     } else {
-      setFocusedElement(null);
       setSelectedElement(null);
     }
-  }, [filteredElements, focusedElement]);
+  }, [filteredElements, selectedElement]);
 
   const handleElementClick = (element) => {
     setSelectedElement(element);
-    setIsPopupOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalClosing(true);
-    setTimeout(() => {
-      setIsPopupOpen(false);
-      setIsModalClosing(false);
-    }, 300);
-  };
-
-  const handleMouseEnter = (element) => {
-    setHoveredElement(element);
-  };
-
-  const handleMouseLeave = () => {
-    setHoveredElement(null);
   };
 
   // Helper để tìm nguyên tố theo vị trí xpos và ypos trong toàn bộ mảng elements
@@ -116,17 +100,46 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (isPopupOpen) {
-        if (event.key === 'Escape') {
-          handleCloseModal();
-        }
-        return;
-      }
-
       // Xử lý phím Escape để xóa tìm kiếm khi input đang focus
       if (event.key === 'Escape' && document.activeElement === searchInputRef.current) {
         setSearchTerm('');
+        return;
+      }
+
+      if (event.key === 'Tab') {
         event.preventDefault();
+        if (!mainContainerRef.current) return;
+
+        const focusableElements = Array.from(
+          mainContainerRef.current.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        );
+        const firstFocusableElement = focusableElements[0];
+        const lastFocusableElement = focusableElements[focusableElements.length - 1];
+        const activeElement = document.activeElement;
+
+        if (event.shiftKey) {
+          // Shift + Tab
+          if (activeElement === firstFocusableElement || !mainContainerRef.current.contains(activeElement)) {
+            lastFocusableElement.focus();
+          } else {
+            const index = focusableElements.indexOf(activeElement);
+            if (index > 0) {
+              focusableElements[index - 1].focus();
+            }
+          }
+        } else {
+          // Tab
+          if (activeElement === lastFocusableElement || !mainContainerRef.current.contains(activeElement)) {
+            firstFocusableElement.focus();
+          } else {
+            const index = focusableElements.indexOf(activeElement);
+            if (index !== -1 && index < focusableElements.length - 1) {
+              focusableElements[index + 1].focus();
+            }
+          }
+        }
         return;
       }
 
@@ -135,22 +148,20 @@ function App() {
         element.symbol.toLowerCase().includes(searchTerm.toLowerCase())
       );
 
-      let currentFocusedElement = focusedElement;
+      let currentSelectedElement = selectedElement;
 
-      // Nếu không có focusedElement hoặc focusedElement hiện tại không nằm trong filteredElements, đặt nó là phần tử đầu tiên của filteredElements
-      if (!currentFocusedElement || !currentFilteredElements.some(el => el.number === currentFocusedElement.number)) {
+      // Nếu không có selectedElement hoặc selectedElement hiện tại không nằm trong filteredElements, đặt nó là phần tử đầu tiên của filteredElements
+      if (!currentSelectedElement || !currentFilteredElements.some(el => el.number === currentSelectedElement.number)) {
         if (currentFilteredElements.length > 0) {
-          currentFocusedElement = currentFilteredElements[0];
-          setFocusedElement(currentFocusedElement);
-          setSelectedElement(currentFocusedElement);
+          currentSelectedElement = currentFilteredElements[0];
+          setSelectedElement(currentSelectedElement);
         } else {
-          currentFocusedElement = null;
-          setFocusedElement(null);
+          currentSelectedElement = null;
           setSelectedElement(null);
         }
       }
 
-      if (!currentFocusedElement) return; // Không có gì để focus, thoát
+      if (!currentSelectedElement) return; // Không có gì để chọn, thoát
 
       if (event.key === '/') {
         event.preventDefault();
@@ -158,17 +169,8 @@ function App() {
         return;
       }
 
-      if (event.key === 'Tab' && document.activeElement === searchInputRef.current) {
-        event.preventDefault();
-        if (currentFilteredElements.length > 0) {
-          setFocusedElement(currentFilteredElements[0]);
-          setSelectedElement(currentFilteredElements[0]);
-        }
-        return;
-      }
-
-      let newX = currentFocusedElement.xpos;
-      let newY = currentFocusedElement.ypos;
+      let newX = currentSelectedElement.xpos;
+      let newY = currentSelectedElement.ypos;
 
       let moved = false;
 
@@ -181,11 +183,7 @@ function App() {
           break;
         case ' ': // Space
         case 'Enter':
-          handleElementClick(currentFocusedElement);
-          event.preventDefault();
-          return;
-        case 'Escape':
-          handleCloseModal();
+          handleElementClick(currentSelectedElement);
           event.preventDefault();
           return;
         default:
@@ -193,9 +191,8 @@ function App() {
       }
 
       if (moved) {
-        const nextElement = findNextFilteredElement(currentFocusedElement, event.key, currentFilteredElements);
+        const nextElement = findNextFilteredElement(currentSelectedElement, event.key, currentFilteredElements);
         if (nextElement) {
-          setFocusedElement(nextElement);
           setSelectedElement(nextElement);
         }
         event.preventDefault();
@@ -206,7 +203,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [focusedElement, elements, isPopupOpen, handleElementClick, handleCloseModal, searchTerm, filteredElements, findNextFilteredElement]);
+  }, [selectedElement, elements, handleElementClick, searchTerm, filteredElements, findNextFilteredElement]);
 
   const handleClearSearch = () => {
     setSearchTerm('');
@@ -214,7 +211,7 @@ function App() {
   };
 
   return (
-    <div className="main-container">
+    <div className="main-container" ref={mainContainerRef}>
       <div className="search-bar">
         <input
           type="text"
@@ -239,16 +236,22 @@ function App() {
             ypos={element.ypos}
             onClick={() => handleElementClick(element)}
             isSelected={selectedElement && selectedElement.number === element.number}
-            onMouseEnter={() => handleMouseEnter(element)}
-            onMouseLeave={handleMouseLeave}
-            isFocused={focusedElement && focusedElement.number === element.number}
           />
         ))}
-
-        {isPopupOpen && !isModalClosing && selectedElement && (
-          <div className={`modal-overlay ${isModalClosing ? 'closing' : ''}`} onClick={handleCloseModal}>
-            <div className={`modal-content ${isModalClosing ? 'closing' : ''}`} onClick={(e) => e.stopPropagation()}>
-              <h2>{selectedElement.name} ({selectedElement.symbol})</h2>
+      </div>
+      <div className="info-panel">
+        {selectedElement ? (
+          <>
+            <div className="element-info-header">
+              <h2>{selectedElement.name} ({selectedElement.symbol}) {selectedElement.atomicNumber}</h2>
+              <p className="element-category">{selectedElement.category}</p>
+            </div>
+            <div className="element-model-container">
+              <ElectronModel element={selectedElement} />
+            </div>
+            <div className="element-details">
+              <h2>{selectedElement.name}</h2>
+              <p><strong>Ký hiệu:</strong> {selectedElement.symbol}</p>
               <p><strong>Số nguyên tử:</strong> {selectedElement.number}</p>
               <p><strong>Khối lượng nguyên tử:</strong> {selectedElement.atomic_mass}</p>
               <p><strong>Category:</strong> {selectedElement.category}</p>
@@ -259,27 +262,8 @@ function App() {
               {selectedElement.density && <p><strong>Mật độ:</strong> {selectedElement.density} g/cm³</p>}
               {selectedElement.discovered_by && <p><strong>Phát hiện bởi:</strong> {selectedElement.discovered_by}</p>}
               {selectedElement.source && <p><strong>Nguồn:</strong> <a href={selectedElement.source} target="_blank" rel="noopener noreferrer">Wikipedia</a></p>}
-              <button onClick={handleCloseModal}>Đóng</button>
             </div>
-          </div>
-        )}
-      </div>
-      <div className="info-panel">
-        {(selectedElement || hoveredElement) ? (
-          <div className="element-details">
-            <h2>{(selectedElement || hoveredElement).name}</h2>
-            <p><strong>Ký hiệu:</strong> {(selectedElement || hoveredElement).symbol}</p>
-            <p><strong>Số nguyên tử:</strong> {(selectedElement || hoveredElement).number}</p>
-            <p><strong>Khối lượng nguyên tử:</strong> {(selectedElement || hoveredElement).atomic_mass}</p>
-            <p><strong>Category:</strong> {(selectedElement || hoveredElement).category}</p>
-            <p><strong>Phase:</strong> {(selectedElement || hoveredElement).phase}</p>
-            <p><strong>Summary:</strong> {(selectedElement || hoveredElement).summary}</p>
-            {(selectedElement || hoveredElement).boil && <p><strong>Điểm sôi:</strong> {(selectedElement || hoveredElement).boil} K</p>}
-            {(selectedElement || hoveredElement).melt && <p><strong>Điểm nóng chảy:</strong> {(selectedElement || hoveredElement).melt} K</p>}
-            {(selectedElement || hoveredElement).density && <p><strong>Mật độ:</strong> {(selectedElement || hoveredElement).density} g/cm³</p>}
-            {(selectedElement || hoveredElement).discovered_by && <p><strong>Phát hiện bởi:</strong> {(selectedElement || hoveredElement).discovered_by}</p>}
-            {(selectedElement || hoveredElement).source && <p><strong>Nguồn:</strong> <a href={(selectedElement || hoveredElement).source} target="_blank" rel="noopener noreferrer">Wikipedia</a></p>}
-          </div>
+          </>
         ) : (
           <div className="welcome-message">
             <h2>Chào mừng đến với Bảng Tuần Hoàn</h2>
