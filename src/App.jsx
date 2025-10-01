@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 import Element from './Element';
 import periodicTableData from './periodicTable.json';
@@ -61,6 +61,59 @@ function App() {
     return elements.find(el => el.xpos === x && el.ypos === y);
   };
 
+  // Helper để tìm nguyên tố tiếp theo trong filteredElements theo hướng
+  const findNextFilteredElement = useCallback((currentElement, directionKey, filteredElements) => {
+    if (!currentElement || filteredElements.length === 0) return null;
+
+    const currentX = currentElement.xpos;
+    const currentY = currentElement.ypos;
+
+    let candidates = [];
+
+    switch (directionKey) {
+      case 'ArrowUp':
+        candidates = filteredElements.filter(el => el.ypos < currentY);
+        candidates.sort((a, b) => {
+          if (a.ypos !== b.ypos) return b.ypos - a.ypos; // Higher ypos (closer to current) first
+          return Math.abs(a.xpos - currentX) - Math.abs(b.xpos - currentX); // Then by xpos proximity
+        });
+        break;
+      case 'ArrowDown':
+        candidates = filteredElements.filter(el => el.ypos > currentY);
+        candidates.sort((a, b) => {
+          if (a.ypos !== b.ypos) return a.ypos - b.ypos; // Lower ypos (closer to current) first
+          return Math.abs(a.xpos - currentX) - Math.abs(b.xpos - currentX); // Then by xpos proximity
+        });
+        break;
+      case 'ArrowLeft':
+        candidates = filteredElements.filter(el => el.ypos === currentY && el.xpos < currentX);
+        if (candidates.length === 0) {
+          candidates = filteredElements.filter(el => el.ypos < currentY);
+          candidates.sort((a, b) => {
+            if (a.ypos !== b.ypos) return b.ypos - a.ypos; // Higher ypos (closer to current) first
+            return b.xpos - a.xpos; // Then by xpos descending (rightmost in previous row)
+          });
+        } else {
+          candidates.sort((a, b) => b.xpos - a.xpos); // Sort by xpos descending (closest left)
+        }
+        break;
+      case 'ArrowRight':
+        candidates = filteredElements.filter(el => el.ypos === currentY && el.xpos > currentX);
+        if (candidates.length === 0) {
+          candidates = filteredElements.filter(el => el.ypos > currentY);
+          candidates.sort((a, b) => {
+            if (a.ypos !== b.ypos) return a.ypos - b.ypos; // Lower ypos (closest to current) first
+            return a.xpos - b.xpos; // Then by xpos ascending (leftmost in next row)
+          });
+        } else {
+          candidates.sort((a, b) => a.xpos - b.xpos); // Sort by xpos ascending (closest right)
+        }
+        break;
+    }
+
+    return candidates.length > 0 ? candidates[0] : null;
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (isPopupOpen) {
@@ -114,19 +167,9 @@ function App() {
 
       switch (event.key) {
         case 'ArrowUp':
-          newY--;
-          moved = true;
-          break;
         case 'ArrowDown':
-          newY++;
-          moved = true;
-          break;
         case 'ArrowLeft':
-          newX--;
-          moved = true;
-          break;
         case 'ArrowRight':
-          newX++;
           moved = true;
           break;
         case ' ': // Space
@@ -143,10 +186,10 @@ function App() {
       }
 
       if (moved) {
-        const potentialNextElement = findElementByPosition(newX, newY);
-        if (potentialNextElement && currentFilteredElements.some(el => el.number === potentialNextElement.number)) {
-          setFocusedElement(potentialNextElement);
-          setSelectedElement(potentialNextElement);
+        const nextElement = findNextFilteredElement(currentFocusedElement, event.key, currentFilteredElements);
+        if (nextElement) {
+          setFocusedElement(nextElement);
+          setSelectedElement(nextElement);
         }
         event.preventDefault();
       }
@@ -156,7 +199,7 @@ function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [focusedElement, elements, isPopupOpen, handleElementClick, handleCloseModal, searchTerm, filteredElements]);
+  }, [focusedElement, elements, isPopupOpen, handleElementClick, handleCloseModal, searchTerm, filteredElements, findNextFilteredElement]);
 
   const handleClearSearch = () => {
     setSearchTerm('');
