@@ -1,0 +1,78 @@
+.element-tile {
+  background-color: #2a2a2a;
+  border: 1px solid #00f0f0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.8em;
+  font-weight: bold;
+  color: #00f0f0;
+  text-shadow: 0 0 5px #00f0f0;
+  box-shadow: 0 0 10px rgba(0, 240, 240, 0.5);
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.element-tile:hover {
+  background-color: #00f0f0;
+  color: #0a0a0a;
+  text-shadow: none;
+  box-shadow: 0 0 20px rgba(0, 240, 240, 0.8);
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.element:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.8);
+  z-index: 10;
+  border-color: #00ffff;
+}
+
+.element.selected {
+  border-color: #00ffff;
+  box-shadow: 0 0 25px rgba(0, 255, 204, 1);
+  transform: scale(1.05);
+}
+
+.atomic-number {
+  font-size: 0.7em;
+  position: absolute;
+  top: 5px;
+  left: 5px;
+}
+
+.symbol {
+  font-size: 1.8em;
+  margin-top: 5px;
+}
+
+.name {
+  font-size: 0.6em;
+  margin-top: 2px;
+}
+
+.atomic-mass {
+  font-size: 0.5em;
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+}
+
+.element {
+  background-color: #1a1a1a;
+  border: 1px solid #00ffcc;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+}
