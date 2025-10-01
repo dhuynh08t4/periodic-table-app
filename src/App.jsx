@@ -123,6 +123,13 @@ function App() {
         return;
       }
 
+      // Xử lý phím Escape để xóa tìm kiếm khi input đang focus
+      if (event.key === 'Escape' && document.activeElement === searchInputRef.current) {
+        setSearchTerm('');
+        event.preventDefault();
+        return;
+      }
+
       const currentFilteredElements = elements.filter(element =>
         element.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         element.symbol.toLowerCase().includes(searchTerm.toLowerCase())
@@ -211,7 +218,7 @@ function App() {
       <div className="search-bar">
         <input
           type="text"
-          placeholder="Tìm kiếm nguyên tố..."
+          placeholder="Nhấn [/] để bắt đầu tìm kiếm"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           ref={searchInputRef}

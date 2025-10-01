@@ -17,7 +17,9 @@ body {
 }
 
 .main-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(18, 1fr) 350px; /* 18 columns for elements + 1 for info panel */
+  grid-template-rows: auto 1fr; /* One row for search bar, one for elements */
   height: 100vh;
   width: 100vw;
   overflow: hidden;
@@ -26,17 +28,19 @@ body {
 }
 
 .periodic-table-container {
+  grid-column: 1 / span 18; /* Span across all 18 element columns */
+  grid-row: 2; /* Second row */
   display: grid;
   grid-template-columns: repeat(18, 1fr);
   grid-template-rows: repeat(10, 1fr);
   gap: 5px;
   padding: 20px;
-  flex-grow: 1;
   overflow: auto;
 }
 
 .info-panel {
-  width: 350px;
+  grid-column: 19; /* Last column */
+  grid-row: 1 / span 2; /* Span across both rows */
   background-color: #1a1a1a;
   border-left: 1px solid #00ffcc;
   padding: 20px;
@@ -179,8 +183,13 @@ body {
 }
 
 .search-bar {
-  margin-bottom: 20px;
-  text-align: center;
+  grid-column: 1 / span 18; /* Span across all 18 element columns */
+  grid-row: 1; /* First row */
+  display: flex;
+  justify-content: center; /* Center the input within the search bar area */
+  align-items: center;
+  padding: 10px 0;
+  margin-bottom: 10px; /* Add some space below the search bar */
 }
 
 .search-bar input {
@@ -199,15 +208,7 @@ body {
 }
 
 .clear-search-button {
-  background-color: #00bcd4;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  margin-left: 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s ease;
+  display: none; /* Ẩn nút xóa tìm kiếm */
 }
 
 .clear-search-button:hover {
