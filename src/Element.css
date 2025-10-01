@@ -76,3 +76,10 @@
   overflow: hidden;
   box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
 }
+
+.element.focused {
+  box-shadow: 0 0 20px 5px rgba(0, 255, 204, 0.8), /* Glow effect */
+              inset 0 0 10px 3px rgba(0, 255, 204, 0.6);
+  transform: scale(1.05);
+  transition: all 0.2s ease-in-out;
+}
